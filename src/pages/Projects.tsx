@@ -23,6 +23,7 @@ type Project = {
   members: string;
   startDate: string;
   additionalInformation: string;
+  repoUrl: string;
   attachments: Attachment[];
   status: ProjectStatus;
   deadline: string;
@@ -38,6 +39,7 @@ type ProjectFormState = {
   members: string;
   startDate: string;
   additionalInformation: string;
+  repoUrl: string;
   attachments: Attachment[];
   status: ProjectStatus;
   deadline: string;
@@ -55,6 +57,7 @@ const initialProjects: Project[] = [
     members: "Parth, Kishan, Aakash",
     startDate: "2026-07-18",
     additionalInformation: "Core admin dashboard with monitoring and workflow improvements.",
+    repoUrl: "https://github.com/syno-hub/dashboard",
     attachments: [
       { name: "project-logo.svg", size: 8421, type: "image/svg+xml" },
       { name: "dashboard-spec.pdf", size: 214321, type: "application/pdf" },
@@ -73,6 +76,7 @@ const initialProjects: Project[] = [
     members: "DevOps, QA, Infra",
     startDate: "2026-07-22",
     additionalInformation: "Alerts, uptime tracking, and operational reporting.",
+    repoUrl: "https://gitlab.com/syno-hub/server-monitoring",
     attachments: [
       {
         name: "ops-notes.docx",
@@ -94,6 +98,7 @@ const initialProjects: Project[] = [
     members: "Aakash, Parth, Sneh",
     startDate: "2026-06-27",
     additionalInformation: "Customer-facing portal with onboarding documents and support workflows.",
+    repoUrl: "https://bitbucket.org/syno-hub/client-portal",
     attachments: [{ name: "portal-wireframes.fig", size: 980120, type: "application/octet-stream" }],
     status: "Completed",
     deadline: "2026-07-10",
@@ -125,6 +130,7 @@ const emptyForm: ProjectFormState = {
   members: "",
   startDate: "",
   additionalInformation: "",
+  repoUrl: "",
   attachments: [],
   status: "Planning",
   deadline: "",
@@ -183,7 +189,8 @@ export default function Projects() {
           project.members,
           project.stack,
           project.additionalInformation,
-        ]
+          project.repoUrl,
+          ]
           .filter(Boolean)
           .some((value) => value.toLowerCase().includes(term));
 
@@ -216,6 +223,7 @@ export default function Projects() {
       members: project.members,
       startDate: project.startDate,
       additionalInformation: project.additionalInformation,
+      repoUrl: project.repoUrl,
       attachments: project.attachments,
       status: project.status,
       deadline: project.deadline,
@@ -253,6 +261,7 @@ export default function Projects() {
       members: form.members.trim(),
       startDate: form.startDate,
       additionalInformation: form.additionalInformation.trim(),
+      repoUrl: form.repoUrl.trim(),
       attachments: form.attachments,
       status: form.status,
       deadline: form.deadline,
@@ -442,6 +451,7 @@ export default function Projects() {
                       value={project.additionalInformation || "Not set"}
                       wide
                     />
+                    <InfoCard label="Repo URL" value={project.repoUrl || "Not set"} wide />
                     <InfoCard label="Deadline" value={project.deadline || "Not set"} />
                     <InfoCard label="Budget" value={project.budget || "Not set"} />
                     <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50 sm:col-span-2">
@@ -499,6 +509,9 @@ export default function Projects() {
                       <p className="font-semibold text-gray-800 dark:text-white/90">{project.name}</p>
                       <p className="mt-1 text-gray-500 dark:text-gray-400">
                         {project.stack || "No stack set"}
+                      </p>
+                      <p className="mt-1 text-xs text-brand-500 dark:text-brand-300">
+                        {project.repoUrl || "No repo URL set"}
                       </p>
                     </div>
                     <div className="text-gray-700 dark:text-gray-300">{project.owner}</div>
@@ -691,6 +704,18 @@ export default function Projects() {
                   />
                 </FormField>
               </div>
+
+              <FormField label="Repo URL">
+                <input
+                  value={form.repoUrl}
+                  onChange={(event) => setForm({ ...form, repoUrl: event.target.value })}
+                  className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
+                  placeholder="https://github.com/org/repo"
+                />
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Works with GitHub, GitLab, Bitbucket, or any other repo host.
+                </p>
+              </FormField>
 
               <FormField label="Attachments">
                 <input
