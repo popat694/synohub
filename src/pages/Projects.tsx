@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import PageMeta from "../components/common/PageMeta";
 import PageBreadcrumb from "../components/common/PageBreadCrumb";
+import { PencilIcon } from "../icons";
 
 type ProjectStatus = "Planning" | "In Progress" | "Completed";
 type ViewMode = "grid" | "list";
@@ -8,8 +9,12 @@ type DrawerMode = "create" | "edit";
 
 type Project = {
   id: number;
+  projectNumber: string;
   name: string;
   owner: string;
+  manager: string;
+  members: string;
+  startDate: string;
   status: ProjectStatus;
   deadline: string;
   stack: string;
@@ -19,8 +24,12 @@ type Project = {
 const initialProjects: Project[] = [
   {
     id: 1,
+    projectNumber: "P-1162",
     name: "SynoHub Dashboard",
-    owner: "Parth",
+    owner: "Parth Popat",
+    manager: "Kishan Bhatt",
+    members: "Parth, Kishan, Aakash",
+    startDate: "2026-07-18",
     status: "In Progress",
     deadline: "2026-08-20",
     stack: "React, Tailwind, Vite",
@@ -28,8 +37,12 @@ const initialProjects: Project[] = [
   },
   {
     id: 2,
+    projectNumber: "P-1124",
     name: "Server Monitoring",
     owner: "DevOps Team",
+    manager: "Aakash",
+    members: "DevOps, QA, Infra",
+    startDate: "2026-07-22",
     status: "Planning",
     deadline: "2026-09-01",
     stack: "React, API, Alerts",
@@ -37,8 +50,12 @@ const initialProjects: Project[] = [
   },
   {
     id: 3,
+    projectNumber: "P-0912",
     name: "Client Portal",
     owner: "Aakash",
+    manager: "Parth Popat",
+    members: "Aakash, Parth, Sneh",
+    startDate: "2026-06-27",
     status: "Completed",
     deadline: "2026-07-10",
     stack: "React, Node, PostgreSQL",
@@ -62,13 +79,22 @@ const statusDotStyles: Record<ProjectStatus, string> = {
 };
 
 const emptyForm = {
+  projectNumber: "",
   name: "",
   owner: "",
+  manager: "",
+  members: "",
+  startDate: "",
   status: "Planning" as ProjectStatus,
   deadline: "",
   stack: "",
   budget: "",
 };
+
+function createProjectNumber() {
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `P-${random}`;
+}
 
 export default function Projects() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -96,7 +122,7 @@ export default function Projects() {
   const openCreateDrawer = () => {
     setDrawerMode("create");
     setEditingProjectId(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, projectNumber: createProjectNumber() });
     setIsDrawerOpen(true);
   };
 
@@ -104,8 +130,12 @@ export default function Projects() {
     setDrawerMode("edit");
     setEditingProjectId(project.id);
     setForm({
+      projectNumber: project.projectNumber,
       name: project.name,
       owner: project.owner,
+      manager: project.manager,
+      members: project.members,
+      startDate: project.startDate,
       status: project.status,
       deadline: project.deadline,
       stack: project.stack,
@@ -119,8 +149,12 @@ export default function Projects() {
 
     const normalizedProject: Project = {
       id: editingProjectId ?? Date.now(),
+      projectNumber: form.projectNumber.trim() || createProjectNumber(),
       name: form.name.trim(),
       owner: form.owner.trim(),
+      manager: form.manager.trim(),
+      members: form.members.trim(),
+      startDate: form.startDate,
       status: form.status,
       deadline: form.deadline,
       stack: form.stack.trim(),
@@ -233,7 +267,18 @@ export default function Projects() {
                   className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div>
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-brand-500 dark:text-brand-300">
+                          {project.projectNumber}
+                        </p>
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${statusStyles[project.status]}`}
+                        >
+                          <span className={`mr-2 size-2 rounded-full ${statusDotStyles[project.status]}`} />
+                          {project.status}
+                        </span>
+                      </div>
                       <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">
                         {project.name}
                       </h4>
@@ -241,15 +286,48 @@ export default function Projects() {
                         Owned by {project.owner}
                       </p>
                     </div>
-                    <span
-                      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${statusStyles[project.status]}`}
+
+                    <button
+                      type="button"
+                      onClick={() => openEditDrawer(project)}
+                      className="inline-flex size-9 items-center justify-center rounded-full border border-gray-300 text-gray-600 transition hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white/90"
+                      aria-label={`Edit ${project.name}`}
                     >
-                      <span className={`mr-2 size-2 rounded-full ${statusDotStyles[project.status]}`} />
-                      {project.status}
-                    </span>
+                      <PencilIcon className="size-4" />
+                    </button>
                   </div>
 
                   <div className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
+                      <p className="text-gray-500 dark:text-gray-400">Project owner</p>
+                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
+                        {project.owner}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
+                      <p className="text-gray-500 dark:text-gray-400">Project manager</p>
+                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
+                        {project.manager}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
+                      <p className="text-gray-500 dark:text-gray-400">Project #</p>
+                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
+                        {project.projectNumber}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
+                      <p className="text-gray-500 dark:text-gray-400">Start date</p>
+                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
+                        {project.startDate || "Not set"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50 sm:col-span-2">
+                      <p className="text-gray-500 dark:text-gray-400">Members</p>
+                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
+                        {project.members || "Not set"}
+                      </p>
+                    </div>
                     <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
                       <p className="text-gray-500 dark:text-gray-400">Deadline</p>
                       <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
@@ -270,35 +348,29 @@ export default function Projects() {
                       {project.stack || "Not set"}
                     </p>
                   </div>
-
-                  <div className="mt-4 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => openEditDrawer(project)}
-                      className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5"
-                    >
-                      Edit
-                    </button>
-                  </div>
                 </article>
               ))}
             </div>
           ) : (
             <div className="rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-4 border-b border-gray-200 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:text-gray-400">
+              <div className="grid grid-cols-[1fr_1.3fr_1fr_1fr_1fr_1fr_auto] gap-4 border-b border-gray-200 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                <div>Project #</div>
                 <div>Project</div>
                 <div>Owner</div>
+                <div>Manager</div>
+                <div>Start date</div>
                 <div>Status</div>
-                <div>Deadline</div>
-                <div>Budget</div>
                 <div>Action</div>
               </div>
               <div className="divide-y divide-gray-200 dark:divide-gray-800">
                 {projects.map((project) => (
                   <div
                     key={project.id}
-                    className="grid grid-cols-1 gap-4 px-5 py-4 text-sm md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] md:items-center"
+                    className="grid grid-cols-1 gap-4 px-5 py-4 text-sm md:grid-cols-[1fr_1.3fr_1fr_1fr_1fr_1fr_auto] md:items-center"
                   >
+                    <div className="font-semibold text-gray-800 dark:text-white/90">
+                      {project.projectNumber}
+                    </div>
                     <div>
                       <p className="font-semibold text-gray-800 dark:text-white/90">
                         {project.name}
@@ -308,6 +380,10 @@ export default function Projects() {
                       </p>
                     </div>
                     <div className="text-gray-700 dark:text-gray-300">{project.owner}</div>
+                    <div className="text-gray-700 dark:text-gray-300">{project.manager}</div>
+                    <div className="text-gray-700 dark:text-gray-300">
+                      {project.startDate || "Not set"}
+                    </div>
                     <div>
                       <span
                         className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${statusStyles[project.status]}`}
@@ -315,19 +391,14 @@ export default function Projects() {
                         {project.status}
                       </span>
                     </div>
-                    <div className="text-gray-700 dark:text-gray-300">
-                      {project.deadline || "Not set"}
-                    </div>
-                    <div className="text-gray-700 dark:text-gray-300">
-                      {project.budget || "Not set"}
-                    </div>
                     <div>
                       <button
                         type="button"
                         onClick={() => openEditDrawer(project)}
-                        className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5"
+                        className="inline-flex size-9 items-center justify-center rounded-full border border-gray-300 text-gray-600 transition hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white/90"
+                        aria-label={`Edit ${project.name}`}
                       >
-                        Edit
+                        <PencilIcon className="size-4" />
                       </button>
                     </div>
                   </div>
@@ -382,6 +453,34 @@ export default function Projects() {
             </div>
 
             <form className="flex-1 space-y-4 overflow-y-auto px-6 py-5" onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Project #
+                  </label>
+                  <input
+                    required
+                    value={form.projectNumber}
+                    onChange={(event) =>
+                      setForm({ ...form, projectNumber: event.target.value })
+                    }
+                    className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
+                    placeholder="P-1162"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Start date
+                  </label>
+                  <input
+                    type="date"
+                    value={form.startDate}
+                    onChange={(event) => setForm({ ...form, startDate: event.target.value })}
+                    className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Project name
@@ -398,16 +497,43 @@ export default function Projects() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Owner
+                    Project owner
                   </label>
                   <input
                     required
                     value={form.owner}
                     onChange={(event) => setForm({ ...form, owner: event.target.value })}
                     className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
-                    placeholder="Parth"
+                    placeholder="Parth Popat"
                   />
                 </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Project manager
+                  </label>
+                  <input
+                    required
+                    value={form.manager}
+                    onChange={(event) => setForm({ ...form, manager: event.target.value })}
+                    className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
+                    placeholder="Kishan Bhatt"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Members
+                </label>
+                <input
+                  value={form.members}
+                  onChange={(event) => setForm({ ...form, members: event.target.value })}
+                  className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
+                  placeholder="Parth, Kishan, Aakash"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Status
@@ -424,9 +550,6 @@ export default function Projects() {
                     <option>Completed</option>
                   </select>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Deadline
@@ -438,6 +561,9 @@ export default function Projects() {
                     className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Budget
@@ -449,18 +575,17 @@ export default function Projects() {
                     placeholder="$25k"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Tech stack
-                </label>
-                <input
-                  value={form.stack}
-                  onChange={(event) => setForm({ ...form, stack: event.target.value })}
-                  className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
-                  placeholder="React, Node, PostgreSQL"
-                />
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Tech stack
+                  </label>
+                  <input
+                    value={form.stack}
+                    onChange={(event) => setForm({ ...form, stack: event.target.value })}
+                    className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
+                    placeholder="React, Node, PostgreSQL"
+                  />
+                </div>
               </div>
 
               <div className="sticky bottom-0 flex items-center gap-3 border-t border-gray-200 bg-white pt-4 dark:border-gray-800 dark:bg-gray-900">
