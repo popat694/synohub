@@ -7,6 +7,12 @@ type ProjectStatus = "Planning" | "In Progress" | "Completed";
 type ViewMode = "grid" | "list";
 type DrawerMode = "create" | "edit";
 
+type Attachment = {
+  name: string;
+  size: number;
+  type: string;
+};
+
 type Project = {
   id: number;
   projectNumber: string;
@@ -15,6 +21,23 @@ type Project = {
   manager: string;
   members: string;
   startDate: string;
+  additionalInformation: string;
+  attachments: Attachment[];
+  status: ProjectStatus;
+  deadline: string;
+  stack: string;
+  budget: string;
+};
+
+type ProjectFormState = {
+  projectNumber: string;
+  name: string;
+  owner: string;
+  manager: string;
+  members: string;
+  startDate: string;
+  additionalInformation: string;
+  attachments: Attachment[];
   status: ProjectStatus;
   deadline: string;
   stack: string;
@@ -30,6 +53,11 @@ const initialProjects: Project[] = [
     manager: "Kishan Bhatt",
     members: "Parth, Kishan, Aakash",
     startDate: "2026-07-18",
+    additionalInformation: "Core admin dashboard with monitoring and workflow improvements.",
+    attachments: [
+      { name: "project-logo.svg", size: 8421, type: "image/svg+xml" },
+      { name: "dashboard-spec.pdf", size: 214321, type: "application/pdf" },
+    ],
     status: "In Progress",
     deadline: "2026-08-20",
     stack: "React, Tailwind, Vite",
@@ -43,6 +71,8 @@ const initialProjects: Project[] = [
     manager: "Aakash",
     members: "DevOps, QA, Infra",
     startDate: "2026-07-22",
+    additionalInformation: "Alerts, uptime tracking, and operational reporting.",
+    attachments: [{ name: "ops-notes.docx", size: 56120, type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }],
     status: "Planning",
     deadline: "2026-09-01",
     stack: "React, API, Alerts",
@@ -56,6 +86,8 @@ const initialProjects: Project[] = [
     manager: "Parth Popat",
     members: "Aakash, Parth, Sneh",
     startDate: "2026-06-27",
+    additionalInformation: "Customer-facing portal with onboarding documents and support workflows.",
+    attachments: [{ name: "portal-wireframes.fig", size: 980120, type: "application/octet-stream" }],
     status: "Completed",
     deadline: "2026-07-10",
     stack: "React, Node, PostgreSQL",
@@ -78,14 +110,16 @@ const statusDotStyles: Record<ProjectStatus, string> = {
   Completed: "bg-success-500",
 };
 
-const emptyForm = {
+const emptyForm: ProjectFormState = {
   projectNumber: "",
   name: "",
   owner: "",
   manager: "",
   members: "",
   startDate: "",
-  status: "Planning" as ProjectStatus,
+  additionalInformation: "",
+  attachments: [],
+  status: "Planning",
   deadline: "",
   stack: "",
   budget: "",
@@ -96,13 +130,33 @@ function createProjectNumber() {
   return `P-${random}`;
 }
 
+function toAttachment(file: File): Attachment {
+  return {
+    name: file.name,
+    size: file.size,
+    type: file.type || "application/octet-stream",
+  };
+}
+
+function formatAttachmentSize(size: number) {
+  if (size >= 1024 * 1024) {
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  if (size >= 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+
+  return `${size} B`;
+}
+
 export default function Projects() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("create");
   const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState<ProjectFormState>(emptyForm);
 
   const stats = useMemo(() => {
     const total = projects.length;
@@ -136,12 +190,32 @@ export default function Projects() {
       manager: project.manager,
       members: project.members,
       startDate: project.startDate,
+      additionalInformation: project.additionalInformation,
+      attachments: project.attachments,
       status: project.status,
       deadline: project.deadline,
       stack: project.stack,
       budget: project.budget,
     });
     setIsDrawerOpen(true);
+  };
+
+  const handleAttachmentChange = (files: FileList | null) => {
+    if (!files) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      attachments: [...current.attachments, ...Array.from(files).map(toAttachment)],
+    }));
+  };
+
+  const removeAttachment = (indexToRemove: number) => {
+    setForm((current) => ({
+      ...current,
+      attachments: current.attachments.filter((_, index) => index !== indexToRemove),
+    }));
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -155,6 +229,8 @@ export default function Projects() {
       manager: form.manager.trim(),
       members: form.members.trim(),
       startDate: form.startDate,
+      additionalInformation: form.additionalInformation.trim(),
+      attachments: form.attachments,
       status: form.status,
       deadline: form.deadline,
       stack: form.stack.trim(),
@@ -290,10 +366,11 @@ export default function Projects() {
                     <button
                       type="button"
                       onClick={() => openEditDrawer(project)}
-                      className="inline-flex size-9 items-center justify-center rounded-full border border-gray-300 text-gray-600 transition hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white/90"
+                      className="inline-flex size-8 items-center justify-center rounded-full border border-gray-300 text-gray-600 transition hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white/90"
                       aria-label={`Edit ${project.name}`}
+                      title="Edit project"
                     >
-                      <PencilIcon className="size-4" />
+                      <PencilIcon className="size-3.5" />
                     </button>
                   </div>
 
@@ -328,6 +405,12 @@ export default function Projects() {
                         {project.members || "Not set"}
                       </p>
                     </div>
+                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50 sm:col-span-2">
+                      <p className="text-gray-500 dark:text-gray-400">Additional information</p>
+                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
+                        {project.additionalInformation || "Not set"}
+                      </p>
+                    </div>
                     <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
                       <p className="text-gray-500 dark:text-gray-400">Deadline</p>
                       <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
@@ -339,6 +422,26 @@ export default function Projects() {
                       <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
                         {project.budget || "Not set"}
                       </p>
+                    </div>
+                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50 sm:col-span-2">
+                      <p className="text-gray-500 dark:text-gray-400">Attachments</p>
+                      <div className="mt-1 space-y-1">
+                        {project.attachments.length ? (
+                          project.attachments.map((attachment) => (
+                            <div
+                              key={`${project.id}-${attachment.name}`}
+                              className="flex items-center justify-between gap-3 text-gray-800 dark:text-white/90"
+                            >
+                              <span className="truncate">{attachment.name}</span>
+                              <span className="shrink-0 text-xs text-gray-500 dark:text-gray-400">
+                                {formatAttachmentSize(attachment.size)}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-gray-800 dark:text-white/90">No attachments</p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -395,10 +498,11 @@ export default function Projects() {
                       <button
                         type="button"
                         onClick={() => openEditDrawer(project)}
-                        className="inline-flex size-9 items-center justify-center rounded-full border border-gray-300 text-gray-600 transition hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white/90"
+                        className="inline-flex size-8 items-center justify-center rounded-full border border-gray-300 text-gray-600 transition hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white/90"
                         aria-label={`Edit ${project.name}`}
+                        title="Edit project"
                       >
-                        <PencilIcon className="size-4" />
+                        <PencilIcon className="size-3.5" />
                       </button>
                     </div>
                   </div>
@@ -533,6 +637,20 @@ export default function Projects() {
                 />
               </div>
 
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Additional information
+                </label>
+                <textarea
+                  value={form.additionalInformation}
+                  onChange={(event) =>
+                    setForm({ ...form, additionalInformation: event.target.value })
+                  }
+                  className="min-h-28 w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
+                  placeholder="Add notes, scope details, risks, or anything the team should know."
+                />
+              </div>
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -585,6 +703,50 @@ export default function Projects() {
                     className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
                     placeholder="React, Node, PostgreSQL"
                   />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Attachments
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  onChange={(event) => handleAttachmentChange(event.target.files)}
+                  className="block w-full cursor-pointer rounded-xl border border-dashed border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-500 file:mr-4 file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-600 dark:border-gray-700 dark:text-gray-400"
+                  accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.fig"
+                />
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Attach project assets, logos, documentation, and other files.
+                </p>
+                <div className="mt-3 space-y-2">
+                  {form.attachments.length ? (
+                    form.attachments.map((attachment, index) => (
+                      <div
+                        key={`${attachment.name}-${index}`}
+                        className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2 text-sm dark:bg-gray-800/50"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-gray-800 dark:text-white/90">
+                            {attachment.name}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatAttachmentSize(attachment.size)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(index)}
+                          className="shrink-0 rounded-lg px-3 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-white/10"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No files attached yet.</p>
+                  )}
                 </div>
               </div>
 
