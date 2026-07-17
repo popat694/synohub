@@ -6,6 +6,7 @@ import { PencilIcon } from "../icons";
 type ProjectStatus = "Planning" | "In Progress" | "Completed";
 type ViewMode = "grid" | "list";
 type DrawerMode = "create" | "edit";
+type FilterStatus = ProjectStatus | "All";
 
 type Attachment = {
   name: string;
@@ -72,7 +73,13 @@ const initialProjects: Project[] = [
     members: "DevOps, QA, Infra",
     startDate: "2026-07-22",
     additionalInformation: "Alerts, uptime tracking, and operational reporting.",
-    attachments: [{ name: "ops-notes.docx", size: 56120, type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }],
+    attachments: [
+      {
+        name: "ops-notes.docx",
+        size: 56120,
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      },
+    ],
     status: "Planning",
     deadline: "2026-09-01",
     stack: "React, API, Alerts",
@@ -139,14 +146,8 @@ function toAttachment(file: File): Attachment {
 }
 
 function formatAttachmentSize(size: number) {
-  if (size >= 1024 * 1024) {
-    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  if (size >= 1024) {
-    return `${(size / 1024).toFixed(1)} KB`;
-  }
-
+  if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  if (size >= 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${size} B`;
 }
 
@@ -156,15 +157,39 @@ export default function Projects() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("create");
   const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>("All");
   const [form, setForm] = useState<ProjectFormState>(emptyForm);
 
   const stats = useMemo(() => {
     const total = projects.length;
     const inProgress = projects.filter((project) => project.status === "In Progress").length;
     const completed = projects.filter((project) => project.status === "Completed").length;
-
     return { total, inProgress, completed };
   }, [projects]);
+
+  const visibleProjects = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+
+    return projects.filter((project) => {
+      const statusMatches = statusFilter === "All" || project.status === statusFilter;
+      const searchMatches =
+        !term ||
+        [
+          project.projectNumber,
+          project.name,
+          project.owner,
+          project.manager,
+          project.members,
+          project.stack,
+          project.additionalInformation,
+        ]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(term));
+
+      return statusMatches && searchMatches;
+    });
+  }, [projects, searchTerm, statusFilter]);
 
   const closeDrawer = () => {
     setIsDrawerOpen(false);
@@ -201,9 +226,7 @@ export default function Projects() {
   };
 
   const handleAttachmentChange = (files: FileList | null) => {
-    if (!files) {
-      return;
-    }
+    if (!files) return;
 
     setForm((current) => ({
       ...current,
@@ -239,9 +262,7 @@ export default function Projects() {
 
     setProjects((current) =>
       drawerMode === "edit"
-        ? current.map((project) =>
-            project.id === editingProjectId ? normalizedProject : project,
-          )
+        ? current.map((project) => (project.id === editingProjectId ? normalizedProject : project))
         : [normalizedProject, ...current],
     );
 
@@ -251,9 +272,7 @@ export default function Projects() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isDrawerOpen) {
-        closeDrawer();
-      }
+      if (event.key === "Escape" && isDrawerOpen) closeDrawer();
     };
 
     document.addEventListener("keydown", handleKeyDown);
@@ -289,55 +308,97 @@ export default function Projects() {
         </div>
 
         <section className="space-y-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-                Project board
-              </h3>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">Project board</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Switch between list and grid view.
+                Search projects and narrow them with filters.
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1 dark:border-gray-800 dark:bg-gray-900/40">
-                <button
-                  type="button"
-                  onClick={() => setViewMode("grid")}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                    viewMode === "grid"
-                      ? "bg-white text-gray-800 shadow-sm dark:bg-gray-800 dark:text-white/90"
-                      : "text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
-                  }`}
-                >
-                  Grid
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("list")}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                    viewMode === "list"
-                      ? "bg-white text-gray-800 shadow-sm dark:bg-gray-800 dark:text-white/90"
-                      : "text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
-                  }`}
-                >
-                  List
-                </button>
+            <div className="flex flex-1 flex-col gap-3 lg:max-w-3xl lg:flex-row lg:items-center lg:justify-end">
+              <div className="relative w-full lg:max-w-sm">
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Search projects..."
+                  className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 pr-10 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
+                />
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+                  ⌕
+                </span>
               </div>
 
-              <button
-                type="button"
-                onClick={openCreateDrawer}
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
-              >
-                Add project
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as FilterStatus)}
+                  className="h-11 rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
+                >
+                  <option value="All">All statuses</option>
+                  <option value="Planning">Planning</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("All");
+                  }}
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5"
+                >
+                  Clear
+                </button>
+
+                <div className="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1 dark:border-gray-800 dark:bg-gray-900/40">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("grid")}
+                    className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                      viewMode === "grid"
+                        ? "bg-white text-gray-800 shadow-sm dark:bg-gray-800 dark:text-white/90"
+                        : "text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                    }`}
+                  >
+                    Grid
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("list")}
+                    className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                      viewMode === "list"
+                        ? "bg-white text-gray-800 shadow-sm dark:bg-gray-800 dark:text-white/90"
+                        : "text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                    }`}
+                  >
+                    List
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={openCreateDrawer}
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
+                >
+                  Add project
+                </button>
+              </div>
             </div>
           </div>
 
-          {viewMode === "grid" ? (
+          {visibleProjects.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-16 text-center dark:border-gray-700 dark:bg-gray-900/30">
+              <p className="text-lg font-semibold text-gray-800 dark:text-white/90">No projects found</p>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Try a different search term or clear the active filter.
+              </p>
+            </div>
+          ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-2">
-              {projects.map((project) => (
+              {visibleProjects.map((project) => (
                 <article
                   key={project.id}
                   className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]"
@@ -355,12 +416,8 @@ export default function Projects() {
                           {project.status}
                         </span>
                       </div>
-                      <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-                        {project.name}
-                      </h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Owned by {project.owner}
-                      </p>
+                      <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">{project.name}</h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Owned by {project.owner}</p>
                     </div>
 
                     <button
@@ -375,54 +432,18 @@ export default function Projects() {
                   </div>
 
                   <div className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
-                      <p className="text-gray-500 dark:text-gray-400">Project owner</p>
-                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
-                        {project.owner}
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
-                      <p className="text-gray-500 dark:text-gray-400">Project manager</p>
-                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
-                        {project.manager}
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
-                      <p className="text-gray-500 dark:text-gray-400">Project #</p>
-                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
-                        {project.projectNumber}
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
-                      <p className="text-gray-500 dark:text-gray-400">Start date</p>
-                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
-                        {project.startDate || "Not set"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50 sm:col-span-2">
-                      <p className="text-gray-500 dark:text-gray-400">Members</p>
-                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
-                        {project.members || "Not set"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50 sm:col-span-2">
-                      <p className="text-gray-500 dark:text-gray-400">Additional information</p>
-                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
-                        {project.additionalInformation || "Not set"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
-                      <p className="text-gray-500 dark:text-gray-400">Deadline</p>
-                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
-                        {project.deadline || "Not set"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
-                      <p className="text-gray-500 dark:text-gray-400">Budget</p>
-                      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">
-                        {project.budget || "Not set"}
-                      </p>
-                    </div>
+                    <InfoCard label="Project owner" value={project.owner} />
+                    <InfoCard label="Project manager" value={project.manager} />
+                    <InfoCard label="Project #" value={project.projectNumber} />
+                    <InfoCard label="Start date" value={project.startDate || "Not set"} />
+                    <InfoCard label="Members" value={project.members || "Not set"} wide />
+                    <InfoCard
+                      label="Additional information"
+                      value={project.additionalInformation || "Not set"}
+                      wide
+                    />
+                    <InfoCard label="Deadline" value={project.deadline || "Not set"} />
+                    <InfoCard label="Budget" value={project.budget || "Not set"} />
                     <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50 sm:col-span-2">
                       <p className="text-gray-500 dark:text-gray-400">Attachments</p>
                       <div className="mt-1 space-y-1">
@@ -466,7 +487,7 @@ export default function Projects() {
                 <div>Action</div>
               </div>
               <div className="divide-y divide-gray-200 dark:divide-gray-800">
-                {projects.map((project) => (
+                {visibleProjects.map((project) => (
                   <div
                     key={project.id}
                     className="grid grid-cols-1 gap-4 px-5 py-4 text-sm md:grid-cols-[1fr_1.3fr_1fr_1fr_1fr_1fr_auto] md:items-center"
@@ -475,9 +496,7 @@ export default function Projects() {
                       {project.projectNumber}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-800 dark:text-white/90">
-                        {project.name}
-                      </p>
+                      <p className="font-semibold text-gray-800 dark:text-white/90">{project.name}</p>
                       <p className="mt-1 text-gray-500 dark:text-gray-400">
                         {project.stack || "No stack set"}
                       </p>
@@ -558,10 +577,7 @@ export default function Projects() {
 
             <form className="flex-1 space-y-4 overflow-y-auto px-6 py-5" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Project #
-                  </label>
+                <FormField label="Project #">
                   <input
                     required
                     value={form.projectNumber}
@@ -571,24 +587,18 @@ export default function Projects() {
                     className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
                     placeholder="P-1162"
                   />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Start date
-                  </label>
+                </FormField>
+                <FormField label="Start date">
                   <input
                     type="date"
                     value={form.startDate}
                     onChange={(event) => setForm({ ...form, startDate: event.target.value })}
                     className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
                   />
-                </div>
+                </FormField>
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Project name
-                </label>
+              <FormField label="Project name">
                 <input
                   required
                   value={form.name}
@@ -596,13 +606,10 @@ export default function Projects() {
                   className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
                   placeholder="Website revamp"
                 />
-              </div>
+              </FormField>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Project owner
-                  </label>
+                <FormField label="Project owner">
                   <input
                     required
                     value={form.owner}
@@ -610,11 +617,8 @@ export default function Projects() {
                     className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
                     placeholder="Parth Popat"
                   />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Project manager
-                  </label>
+                </FormField>
+                <FormField label="Project manager">
                   <input
                     required
                     value={form.manager}
@@ -622,25 +626,19 @@ export default function Projects() {
                     className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
                     placeholder="Kishan Bhatt"
                   />
-                </div>
+                </FormField>
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Members
-                </label>
+              <FormField label="Members">
                 <input
                   value={form.members}
                   onChange={(event) => setForm({ ...form, members: event.target.value })}
                   className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
                   placeholder="Parth, Kishan, Aakash"
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Additional information
-                </label>
+              <FormField label="Additional information">
                 <textarea
                   value={form.additionalInformation}
                   onChange={(event) =>
@@ -649,13 +647,10 @@ export default function Projects() {
                   className="min-h-28 w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
                   placeholder="Add notes, scope details, risks, or anything the team should know."
                 />
-              </div>
+              </FormField>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Status
-                  </label>
+                <FormField label="Status">
                   <select
                     value={form.status}
                     onChange={(event) =>
@@ -667,49 +662,37 @@ export default function Projects() {
                     <option>In Progress</option>
                     <option>Completed</option>
                   </select>
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Deadline
-                  </label>
+                </FormField>
+                <FormField label="Deadline">
                   <input
                     type="date"
                     value={form.deadline}
                     onChange={(event) => setForm({ ...form, deadline: event.target.value })}
                     className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
                   />
-                </div>
+                </FormField>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Budget
-                  </label>
+                <FormField label="Budget">
                   <input
                     value={form.budget}
                     onChange={(event) => setForm({ ...form, budget: event.target.value })}
                     className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
                     placeholder="$25k"
                   />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Tech stack
-                  </label>
+                </FormField>
+                <FormField label="Tech stack">
                   <input
                     value={form.stack}
                     onChange={(event) => setForm({ ...form, stack: event.target.value })}
                     className="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none transition focus:border-brand-500 dark:border-gray-700 dark:text-white/90"
                     placeholder="React, Node, PostgreSQL"
                   />
-                </div>
+                </FormField>
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Attachments
-                </label>
+              <FormField label="Attachments">
                 <input
                   type="file"
                   multiple
@@ -748,7 +731,7 @@ export default function Projects() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">No files attached yet.</p>
                   )}
                 </div>
-              </div>
+              </FormField>
 
               <div className="sticky bottom-0 flex items-center gap-3 border-t border-gray-200 bg-white pt-4 dark:border-gray-800 dark:bg-gray-900">
                 <button
@@ -770,5 +753,39 @@ export default function Projects() {
         </aside>
       </div>
     </>
+  );
+}
+
+function InfoCard({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  wide?: boolean;
+}) {
+  return (
+    <div className={`rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50 ${wide ? "sm:col-span-2" : ""}`}>
+      <p className="text-gray-500 dark:text-gray-400">{label}</p>
+      <p className="mt-1 font-medium text-gray-800 dark:text-white/90">{value}</p>
+    </div>
+  );
+}
+
+function FormField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        {label}
+      </label>
+      {children}
+    </div>
   );
 }
