@@ -1,17 +1,12 @@
 import { Link, useLocation } from "react-router";
-import {
-  GridIcon,
-  CalenderIcon,
-  TableIcon,
-  UserCircleIcon,
-} from "../icons";
+import { GridIcon, CalenderIcon, TableIcon, PageIcon } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 
 const navItems = [
   { name: "Dashboard", path: "/", icon: <GridIcon /> },
   { name: "Calendar", path: "/calendar", icon: <CalenderIcon /> },
   { name: "Servers", path: "/servers", icon: <TableIcon /> },
-  { name: "User Profile", path: "/profile", icon: <UserCircleIcon /> },
+  { name: "Projects", path: "/projects", icon: <PageIcon /> },
 ];
 
 const AppSidebar: React.FC = () => {
