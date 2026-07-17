@@ -275,16 +275,27 @@ export default function Projects() {
         </section>
       </div>
 
-      {isDrawerOpen ? (
-        <div className="fixed inset-0 z-[60] flex justify-end bg-gray-950/50 backdrop-blur-sm">
-          <button
-            type="button"
-            aria-label="Close project drawer"
-            className="absolute inset-0 cursor-default"
-            onClick={closeDrawer}
-          />
+      <div
+        className={`fixed inset-0 z-[60] transition duration-300 ease-out ${
+          isDrawerOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        aria-hidden={!isDrawerOpen}
+      >
+        <button
+          type="button"
+          aria-label="Close project drawer"
+          className={`absolute inset-0 bg-gray-950/50 backdrop-blur-sm transition-opacity duration-300 ${
+            isDrawerOpen ? "opacity-100" : "opacity-0"
+          }`}
+          onClick={closeDrawer}
+        />
 
-          <aside className="relative z-[61] flex h-full w-full max-w-xl flex-col border-l border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+        <aside
+          className={`absolute right-0 top-0 h-full w-full max-w-[460px] border-l border-gray-200 bg-white shadow-2xl transition-transform duration-300 ease-out dark:border-gray-800 dark:bg-gray-900 sm:max-w-[520px] ${
+            isDrawerOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-5 dark:border-gray-800">
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
@@ -387,7 +398,7 @@ export default function Projects() {
                 />
               </div>
 
-              <div className="flex items-center gap-3 border-t border-gray-200 pt-4 dark:border-gray-800">
+              <div className="sticky bottom-0 flex items-center gap-3 border-t border-gray-200 bg-white pt-4 dark:border-gray-800 dark:bg-gray-900">
                 <button
                   type="button"
                   onClick={closeDrawer}
@@ -403,9 +414,9 @@ export default function Projects() {
                 </button>
               </div>
             </form>
-          </aside>
-        </div>
-      ) : null}
+          </div>
+        </aside>
+      </div>
     </>
   );
 }
