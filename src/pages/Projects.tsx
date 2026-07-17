@@ -316,8 +316,8 @@ export default function Projects() {
               </p>
             </div>
 
-            <div className="flex flex-1 flex-col gap-3 lg:max-w-3xl lg:flex-row lg:items-center lg:justify-end">
-              <div className="relative w-full lg:max-w-sm">
+            <div className="flex flex-1 flex-col gap-3 xl:flex-row xl:flex-nowrap xl:items-center xl:justify-end">
+              <div className="relative w-full xl:max-w-xs">
                 <input
                   type="search"
                   value={searchTerm}
