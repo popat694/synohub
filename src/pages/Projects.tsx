@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PageMeta from "../components/common/PageMeta";
 import PageBreadcrumb from "../components/common/PageBreadCrumb";
 
 type ProjectStatus = "Planning" | "In Progress" | "Completed";
 type ViewMode = "grid" | "list";
+type DrawerMode = "create" | "edit";
 
 type Project = {
   id: number;
@@ -73,6 +74,8 @@ export default function Projects() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("create");
+  const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
   const [form, setForm] = useState(emptyForm);
 
   const stats = useMemo(() => {
@@ -83,29 +86,69 @@ export default function Projects() {
     return { total, inProgress, completed };
   }, [projects]);
 
-  const openDrawer = () => setIsDrawerOpen(true);
-  const closeDrawer = () => setIsDrawerOpen(false);
+  const closeDrawer = () => {
+    setIsDrawerOpen(false);
+    setDrawerMode("create");
+    setEditingProjectId(null);
+    setForm(emptyForm);
+  };
+
+  const openCreateDrawer = () => {
+    setDrawerMode("create");
+    setEditingProjectId(null);
+    setForm(emptyForm);
+    setIsDrawerOpen(true);
+  };
+
+  const openEditDrawer = (project: Project) => {
+    setDrawerMode("edit");
+    setEditingProjectId(project.id);
+    setForm({
+      name: project.name,
+      owner: project.owner,
+      status: project.status,
+      deadline: project.deadline,
+      stack: project.stack,
+      budget: project.budget,
+    });
+    setIsDrawerOpen(true);
+  };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    setProjects((current) => [
-      {
-        id: Date.now(),
-        name: form.name.trim(),
-        owner: form.owner.trim(),
-        status: form.status,
-        deadline: form.deadline,
-        stack: form.stack.trim(),
-        budget: form.budget.trim(),
-      },
-      ...current,
-    ]);
+    const normalizedProject: Project = {
+      id: editingProjectId ?? Date.now(),
+      name: form.name.trim(),
+      owner: form.owner.trim(),
+      status: form.status,
+      deadline: form.deadline,
+      stack: form.stack.trim(),
+      budget: form.budget.trim(),
+    };
 
-    setForm(emptyForm);
+    setProjects((current) =>
+      drawerMode === "edit"
+        ? current.map((project) =>
+            project.id === editingProjectId ? normalizedProject : project,
+          )
+        : [normalizedProject, ...current],
+    );
+
     setViewMode("grid");
     closeDrawer();
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isDrawerOpen) {
+        closeDrawer();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isDrawerOpen]);
 
   return (
     <>
@@ -174,7 +217,7 @@ export default function Projects() {
 
               <button
                 type="button"
-                onClick={openDrawer}
+                onClick={openCreateDrawer}
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
               >
                 Add project
@@ -227,23 +270,34 @@ export default function Projects() {
                       {project.stack || "Not set"}
                     </p>
                   </div>
+
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => openEditDrawer(project)}
+                      className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5"
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
           ) : (
             <div className="rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 border-b border-gray-200 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:text-gray-400">
+              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-4 border-b border-gray-200 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:text-gray-400">
                 <div>Project</div>
                 <div>Owner</div>
                 <div>Status</div>
                 <div>Deadline</div>
                 <div>Budget</div>
+                <div>Action</div>
               </div>
               <div className="divide-y divide-gray-200 dark:divide-gray-800">
                 {projects.map((project) => (
                   <div
                     key={project.id}
-                    className="grid grid-cols-1 gap-4 px-5 py-4 text-sm md:grid-cols-[2fr_1fr_1fr_1fr_1fr] md:items-center"
+                    className="grid grid-cols-1 gap-4 px-5 py-4 text-sm md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] md:items-center"
                   >
                     <div>
                       <p className="font-semibold text-gray-800 dark:text-white/90">
@@ -266,6 +320,15 @@ export default function Projects() {
                     </div>
                     <div className="text-gray-700 dark:text-gray-300">
                       {project.budget || "Not set"}
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => openEditDrawer(project)}
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5"
+                      >
+                        Edit
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -299,10 +362,12 @@ export default function Projects() {
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-5 dark:border-gray-800">
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-                  Add project
+                  {drawerMode === "edit" ? "Edit project" : "Add project"}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Create a project in the side panel.
+                  {drawerMode === "edit"
+                    ? "Update the selected project in the side panel."
+                    : "Create a project in the side panel."}
                 </p>
               </div>
 
@@ -410,7 +475,7 @@ export default function Projects() {
                   type="submit"
                   className="inline-flex h-11 items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
                 >
-                  Create project
+                  {drawerMode === "edit" ? "Save changes" : "Create project"}
                 </button>
               </div>
             </form>
