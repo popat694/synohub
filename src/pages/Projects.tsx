@@ -1,35 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
 import PageMeta from "../components/common/PageMeta";
 import PageBreadcrumb from "../components/common/PageBreadCrumb";
+import {
+  formatAttachmentSize,
+  initialProjects,
+  type Attachment,
+  type Project,
+  type ProjectStatus,
+} from "../data/projects";
 import { PencilIcon } from "../icons";
 
-type ProjectStatus = "Planning" | "In Progress" | "Completed";
 type ViewMode = "grid" | "list";
 type DrawerMode = "create" | "edit";
 type FilterStatus = ProjectStatus | "All";
-
-type Attachment = {
-  name: string;
-  size: number;
-  type: string;
-};
-
-type Project = {
-  id: number;
-  projectNumber: string;
-  name: string;
-  owner: string;
-  manager: string;
-  members: string;
-  startDate: string;
-  additionalInformation: string;
-  repoUrl: string;
-  attachments: Attachment[];
-  status: ProjectStatus;
-  deadline: string;
-  stack: string;
-  budget: string;
-};
 
 type ProjectFormState = {
   projectNumber: string;
@@ -47,65 +31,6 @@ type ProjectFormState = {
   budget: string;
 };
 
-const initialProjects: Project[] = [
-  {
-    id: 1,
-    projectNumber: "P-1162",
-    name: "SynoHub Dashboard",
-    owner: "Parth Popat",
-    manager: "Kishan Bhatt",
-    members: "Parth, Kishan, Aakash",
-    startDate: "2026-07-18",
-    additionalInformation: "Core admin dashboard with monitoring and workflow improvements.",
-    repoUrl: "https://github.com/syno-hub/dashboard",
-    attachments: [
-      { name: "project-logo.svg", size: 8421, type: "image/svg+xml" },
-      { name: "dashboard-spec.pdf", size: 214321, type: "application/pdf" },
-    ],
-    status: "In Progress",
-    deadline: "2026-08-20",
-    stack: "React, Tailwind, Vite",
-    budget: "$24k",
-  },
-  {
-    id: 2,
-    projectNumber: "P-1124",
-    name: "Server Monitoring",
-    owner: "DevOps Team",
-    manager: "Aakash",
-    members: "DevOps, QA, Infra",
-    startDate: "2026-07-22",
-    additionalInformation: "Alerts, uptime tracking, and operational reporting.",
-    repoUrl: "https://gitlab.com/syno-hub/server-monitoring",
-    attachments: [
-      {
-        name: "ops-notes.docx",
-        size: 56120,
-        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      },
-    ],
-    status: "Planning",
-    deadline: "2026-09-01",
-    stack: "React, API, Alerts",
-    budget: "$18k",
-  },
-  {
-    id: 3,
-    projectNumber: "P-0912",
-    name: "Client Portal",
-    owner: "Aakash",
-    manager: "Parth Popat",
-    members: "Aakash, Parth, Sneh",
-    startDate: "2026-06-27",
-    additionalInformation: "Customer-facing portal with onboarding documents and support workflows.",
-    repoUrl: "https://bitbucket.org/syno-hub/client-portal",
-    attachments: [{ name: "portal-wireframes.fig", size: 980120, type: "application/octet-stream" }],
-    status: "Completed",
-    deadline: "2026-07-10",
-    stack: "React, Node, PostgreSQL",
-    budget: "$31k",
-  },
-];
 
 const statusStyles: Record<ProjectStatus, string> = {
   Planning:
@@ -149,12 +74,6 @@ function toAttachment(file: File): Attachment {
     size: file.size,
     type: file.type || "application/octet-stream",
   };
-}
-
-function formatAttachmentSize(size: number) {
-  if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-  if (size >= 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${size} B`;
 }
 
 export default function Projects() {
@@ -429,15 +348,25 @@ export default function Projects() {
                       <p className="text-sm text-gray-500 dark:text-gray-400">Owned by {project.owner}</p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => openEditDrawer(project)}
-                      className="inline-flex size-8 items-center justify-center rounded-full border border-gray-300 text-gray-600 transition hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white/90"
-                      aria-label={`Edit ${project.name}`}
-                      title="Edit project"
-                    >
-                      <PencilIcon className="size-3.5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/projects/${project.id}`}
+                        state={{ project }}
+                        aria-label={`View ${project.name} details`}
+                        className="inline-flex h-8 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 px-3 text-xs font-medium text-brand-700 transition hover:border-brand-300 hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:bg-brand-500/20"
+                      >
+                        View details
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => openEditDrawer(project)}
+                        className="inline-flex size-8 items-center justify-center rounded-full border border-gray-300 text-gray-600 transition hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white/90"
+                        aria-label={`Edit ${project.name}`}
+                        title="Edit project"
+                      >
+                        <PencilIcon className="size-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
@@ -526,7 +455,15 @@ export default function Projects() {
                         {project.status}
                       </span>
                     </div>
-                    <div>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/projects/${project.id}`}
+                        state={{ project }}
+                        aria-label={`View ${project.name} details`}
+                        className="inline-flex h-8 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 px-3 text-xs font-medium text-brand-700 transition hover:border-brand-300 hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:bg-brand-500/20"
+                      >
+                        View
+                      </Link>
                       <button
                         type="button"
                         onClick={() => openEditDrawer(project)}
