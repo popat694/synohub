@@ -27,6 +27,8 @@ The project follows a feature-oriented frontend structure with route-level pages
 ### 4. Feature pages
 - Pages compose reusable components into user-facing screens
 - Dashboard home is the primary landing experience
+- The project command center uses one route-level page with accessible tab panels for PM workflows
+- Typed command-center fixtures are isolated in `src/data/projectCommandCenter.ts` until live APIs replace them
 
 ### 5. Design system
 - Tailwind utility classes define spacing, color, and responsive behavior
