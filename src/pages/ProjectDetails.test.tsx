@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Link, MemoryRouter, Route, Routes } from "react-router";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { AppWrapper } from "../components/common/PageMeta";
 import { initialProjects } from "../data/projects";
 import ProjectDetails from "./ProjectDetails";
@@ -14,6 +14,10 @@ function renderWithAppProviders(ui: React.ReactNode, initialPath: string) {
     </AppWrapper>,
   );
 }
+
+afterEach(() => {
+  window.localStorage.clear();
+});
 
 describe("project details workflow", () => {
   it("offers a details link for each project", () => {
@@ -38,6 +42,10 @@ describe("project details workflow", () => {
     expect(screen.getByRole("link", { name: "Back to projects" })).toHaveAttribute(
       "href",
       "/projects",
+    );
+    expect(screen.getByRole("link", { name: "Manage project operations" })).toHaveAttribute(
+      "href",
+      "/projects/1/operations",
     );
   });
 
@@ -72,6 +80,34 @@ describe("project details workflow", () => {
 
     await user.click(screen.getByRole("tab", { name: "Activity" }));
     expect(screen.getByRole("heading", { name: "Activity timeline" })).toBeInTheDocument();
+  });
+
+  it("explains each supported dependency relationship correctly", async () => {
+    window.localStorage.setItem(
+      "synohub.project-operations.v1.1",
+      JSON.stringify({
+        version: 1,
+        data: {
+          dependencies: [
+            { id: "DEP-FS", predecessorId: "SYN-31", successorId: "SYN-34", type: "Finish-to-start" },
+            { id: "DEP-SS", predecessorId: "SYN-34", successorId: "SYN-38", type: "Start-to-start" },
+            { id: "DEP-FF", predecessorId: "SYN-38", successorId: "SYN-41", type: "Finish-to-finish" },
+          ],
+        },
+      }),
+    );
+    const user = userEvent.setup();
+    renderWithAppProviders(
+      <Routes>
+        <Route path="/projects/:projectId" element={<ProjectDetails />} />
+      </Routes>,
+      "/projects/1",
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Plan" }));
+    expect(screen.getByText("Build project health overview can start only after Finalize command-center information architecture finishes.")).toBeInTheDocument();
+    expect(screen.getByText("Define AI recommendation approval states can start only after Build project health overview starts.")).toBeInTheDocument();
+    expect(screen.getByText("Prepare status-update template can finish only after Define AI recommendation approval states finishes.")).toBeInTheDocument();
   });
 
   it("uses project-specific operational data", async () => {

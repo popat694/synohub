@@ -6,6 +6,7 @@ import {
   statusUpdates,
   workItems,
   type DecisionItem,
+  type DependencyItem,
   type Milestone,
   type RiskItem,
   type StatusUpdate,
@@ -24,6 +25,7 @@ export type ProjectCommandCenterData = {
   primaryAttentionDetail: string;
   milestones: Milestone[];
   workItems: WorkItem[];
+  dependencies: DependencyItem[];
   risks: RiskItem[];
   decisions: DecisionItem[];
   statusUpdates: StatusUpdate[];
@@ -43,6 +45,14 @@ const synohubCommandCenter: ProjectCommandCenterData = {
   primaryAttentionDetail: "Blocking the automation prototype · Owner: Aakash",
   milestones,
   workItems,
+  dependencies: [
+    {
+      id: "DEP-SYN-1",
+      predecessorId: "SYN-31",
+      successorId: "SYN-34",
+      type: "Finish-to-start",
+    },
+  ],
   risks,
   decisions,
   statusUpdates,
@@ -114,6 +124,14 @@ const monitoringCommandCenter: ProjectCommandCenterData = {
     },
   ],
   workItems: monitoringWorkItems,
+  dependencies: [
+    {
+      id: "DEP-MON-1",
+      predecessorId: "MON-12",
+      successorId: "MON-14",
+      type: "Finish-to-start",
+    },
+  ],
   risks: [
     {
       title: "Incident escalation policy is awaiting approval",
@@ -216,6 +234,14 @@ const portalCommandCenter: ProjectCommandCenterData = {
     },
   ],
   workItems: portalWorkItems,
+  dependencies: [
+    {
+      id: "DEP-CP-1",
+      predecessorId: "CP-81",
+      successorId: "CP-84",
+      type: "Finish-to-start",
+    },
+  ],
   risks: [],
   decisions: [
     {
@@ -259,6 +285,7 @@ const emptyCommandCenter: ProjectCommandCenterData = {
   primaryAttentionDetail: "Add milestones, owners, and work items before requesting AI analysis.",
   milestones: [],
   workItems: [],
+  dependencies: [],
   risks: [],
   decisions: [],
   statusUpdates: [],

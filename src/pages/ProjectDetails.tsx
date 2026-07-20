@@ -5,12 +5,11 @@ import PageMeta from "../components/common/PageMeta";
 import {
   commandCenterTabs,
   type CommandCenterTab,
+  type DependencyItem,
   type WorkItem,
 } from "../data/projectCommandCenter";
-import {
-  getProjectCommandCenterData,
-  type ProjectCommandCenterData,
-} from "../data/projectCommandCenterByProject";
+import type { ProjectCommandCenterData } from "../data/projectCommandCenterByProject";
+import { useProjectOperationsData } from "../data/projectOperationsStore";
 import {
   formatAttachmentSize,
   initialProjects,
@@ -60,6 +59,7 @@ export default function ProjectDetails() {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<CommandCenterTab>("overview");
   const numericProjectId = Number(projectId);
+  const { data: commandCenter } = useProjectOperationsData(numericProjectId);
   const stateProject = (location.state as ProjectRouteState | null)?.project;
   const project =
     stateProject?.id === numericProjectId
@@ -69,8 +69,6 @@ export default function ProjectDetails() {
   if (!project) {
     return <ProjectNotFound />;
   }
-
-  const commandCenter = getProjectCommandCenterData(project.id);
 
   const selectTab = (tab: CommandCenterTab, moveFocus = false) => {
     if (moveFocus) {
@@ -138,6 +136,13 @@ export default function ProjectDetails() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to={`/projects/${project.id}/operations`}
+              aria-label="Manage project operations"
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-brand-200 bg-brand-50 px-5 text-sm font-medium text-brand-700 transition hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300"
+            >
+              Manage operations
+            </Link>
             <button
               type="button"
               onClick={() => selectTab("updates", true)}
@@ -478,6 +483,20 @@ function OverviewTab({
   );
 }
 
+function dependencyExplanation(
+  type: DependencyItem["type"],
+  predecessorTitle: string,
+  successorTitle: string,
+) {
+  if (type === "Start-to-start") {
+    return `${successorTitle} can start only after ${predecessorTitle} starts.`;
+  }
+  if (type === "Finish-to-finish") {
+    return `${successorTitle} can finish only after ${predecessorTitle} finishes.`;
+  }
+  return `${successorTitle} can start only after ${predecessorTitle} finishes.`;
+}
+
 function PlanTab({ data }: { data: ProjectCommandCenterData }) {
   const atRisk = data.milestones.filter((milestone) => milestone.status === "At risk").length;
 
@@ -533,23 +552,47 @@ function PlanTab({ data }: { data: ProjectCommandCenterData }) {
         </div>
       </Section>
 
-      <Section title="Dependency chain" eyebrow="Critical delivery path">
-        <div className="flex flex-col items-stretch gap-3 lg:flex-row lg:items-center">
-          {data.milestones.map((milestone) => milestone.name).map((dependency, index, all) => (
-            <div key={dependency} className="contents">
-              <div className="flex-1 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm font-medium text-gray-700 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-300">
-                <span className="mb-2 block text-xs text-gray-400">Step {index + 1}</span>
-                {dependency}
-              </div>
-              {index < all.length - 1 ? (
-                <span className="text-center text-gray-300 dark:text-gray-700">
-                  <span className="lg:hidden">↓</span>
-                  <span className="hidden lg:inline">→</span>
-                </span>
-              ) : null}
-            </div>
-          ))}
-        </div>
+      <Section
+        title="Dependencies"
+        eyebrow={`${data.dependencies.length} explicit relationship${data.dependencies.length === 1 ? "" : "s"}`}
+      >
+        {data.dependencies.length > 0 ? (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {data.dependencies.map((dependency) => {
+              const predecessor = data.workItems.find(
+                (item) => item.id === dependency.predecessorId,
+              );
+              const successor = data.workItems.find(
+                (item) => item.id === dependency.successorId,
+              );
+
+              return (
+                <article
+                  key={dependency.id}
+                  className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/40"
+                >
+                  <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                    {dependency.predecessorId} → {dependency.successorId}
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
+                    {dependencyExplanation(
+                      dependency.type,
+                      predecessor?.title ?? "Unknown predecessor",
+                      successor?.title ?? "Unknown successor",
+                    )}
+                  </p>
+                  <span className="mt-3 inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-500 shadow-sm dark:bg-gray-800 dark:text-gray-300">
+                    {dependency.type}
+                  </span>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            No work dependencies have been recorded.
+          </p>
+        )}
       </Section>
     </div>
   );

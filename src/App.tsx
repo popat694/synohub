@@ -5,6 +5,7 @@ import Calendar from "./pages/Calendar";
 import Servers from "./pages/Servers";
 import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
+import ProjectOperations from "./pages/ProjectOperations";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
@@ -21,6 +22,7 @@ export default function App() {
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/servers" element={<Servers />} />
             <Route path="/projects" element={<Projects />} />
+            <Route path="/projects/:projectId/operations" element={<ProjectOperations />} />
             <Route path="/projects/:projectId" element={<ProjectDetails />} />
           </Route>
 

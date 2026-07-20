@@ -28,11 +28,19 @@ The project follows a feature-oriented frontend structure with route-level pages
 - Pages compose reusable components into user-facing screens
 - Dashboard home is the primary landing experience
 - The project command center uses one route-level page with accessible tab panels for PM workflows
-- Typed command-center fixtures are isolated in `src/data/projectCommandCenter.ts` until live APIs replace them
+- The dedicated project-operations route provides clean, non-modal management workflows for canonical PM records
+- Typed command-center fixtures are isolated in `src/data/projectCommandCenter.ts` and `src/data/projectCommandCenterByProject.ts` until live APIs replace them
 
-### 5. Design system
+### 5. Frontend data boundary
+- `src/data/projectOperationsStore.ts` is the temporary repository boundary for project operations data
+- The hook loads typed seed data, safely ignores malformed browser-storage payloads, and persists updates under a versioned project key
+- The Project Operations page owns write workflows; the Project Command Center consumes the same read model
+- Explicit dependency records reference predecessor and successor work-item IDs rather than inferring a delivery chain from milestone order
+- Browser storage is prototype persistence only; authentication, authorization, concurrency, server validation, and audit guarantees require the planned backend API
+
+### 6. Design system
 - Tailwind utility classes define spacing, color, and responsive behavior
 - TailAdmin-inspired tokens and patterns keep the UI consistent
 
 ## Evolution path
-As SynoHub matures, the app can add data fetching, auth, permissions, and server-backed dashboard modules without replacing the existing shell.
+Replace the temporary browser-storage repository with authenticated API calls while preserving the typed `ProjectCommandCenterData` boundary. The backend must add workspace isolation, role checks, immutable audit events, optimistic concurrency, and server-side validation before these workflows are production-ready.

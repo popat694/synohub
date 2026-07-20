@@ -25,6 +25,13 @@ export type WorkItem = {
   status: "To do" | "In progress" | "Blocked" | "Done";
 };
 
+export type DependencyItem = {
+  id: string;
+  predecessorId: string;
+  successorId: string;
+  type: "Finish-to-start" | "Start-to-start" | "Finish-to-finish";
+};
+
 export type RiskItem = {
   title: string;
   type: "Risk" | "Issue";
